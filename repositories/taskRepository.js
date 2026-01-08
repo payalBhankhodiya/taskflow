@@ -1,3 +1,4 @@
+
 import pool from "../db.js";
 
 async function createTask(req, res) {
@@ -36,7 +37,10 @@ async function getTaskById(req, res) {
   try {
     const { id } = req.params;
     const taskByIdQuery = await pool.query(
-      "SELECT * FROM tasks WHERE id = $1",
+      `SELECT t.id, t.title, p.name, u.username FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      JOIN users u ON t.assignee_id = u.id
+       WHERE id = $1`,
       [id]
     );
     res.json(taskByIdQuery.rows[0]);

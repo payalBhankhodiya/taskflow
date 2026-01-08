@@ -2,15 +2,16 @@ import pool from "../db.js";
 
 async function createUser(req, res) {
   try {
-    const { id, email, username, password_hash, full_name, avatar_url } =
+    const {  email, username, password_hash, full_name, avatar_url } =
       req.body;
     const addQuery = await pool.query(
-      "INSERT INTO users ( id, email, username, password_hash, full_name, avatar_url) VALUES($1) RETURNING *",
-      [id, email, username, password_hash, full_name, avatar_url]
+      "INSERT INTO users ( email, username, password_hash, full_name, avatar_url) VALUES($1,$2,$3,$4,$5) RETURNING *",
+      [ email, username, password_hash, full_name, avatar_url]
     );
-    res.json(addQuery.raws[0]);
-  } catch {
-    console.error(err.message);
+    console.log(addQuery);
+    res.json(addQuery.rows[0]);
+  } catch(err) {
+    console.error("craete user error:",err.message);
   }
 }
 async function getUserById(req, res) {
@@ -51,7 +52,7 @@ async function updateUser(req, res) {
 
     res.json("User has been updated");
   } catch (err) {
-    console.error(err.message);
+    console.error("User update error : ",err.message);
   }
 }
 
@@ -73,7 +74,7 @@ async function getAllUsers(req, res) {
     const allUserQuery = await pool.query("SELECT * FROM users");
     res.json(allUserQuery.rows);
   } catch (err) {
-    console.error(err.message);
+    console.error("Getting user error : ",err.message);
   }
 }
 
