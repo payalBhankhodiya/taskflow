@@ -2,12 +2,12 @@ import pool from "../db.js";
 
 async function createProject(req, res) {
   try {
-    const { id, name, description, owner_id, status, deadline } = req.body;
+    const { name, description, owner_id, status, deadline } = req.body;
     const addProjectQuery = await pool.query(
-      "INSERT INTO projects ( id, name, description, owner_id, status, deadline) VALUES($1) RETURNING *",
-      [id, name, description, owner_id, status, deadline]
+      "INSERT INTO projects (name, description, owner_id, status, deadline) VALUES($1,$2,$3,$4,$5) RETURNING *",
+      [name, description, owner_id, status, deadline]
     );
-    res.json(addProjectQuery.raws[0]);
+    res.json(addProjectQuery.rows[0]);
   } catch {
     console.error(err.message);
   }
@@ -43,11 +43,17 @@ async function updateProject(req, res) {
     const { name, description, owner_id, status, deadline } = req.body;
 
     const updatedProjectQuery = await pool.query(
-      "UPDATE projects SET name, description, owner_id, status, deadline = $1 WHERE id= $2",
+      `UPDATE projects
+       SET name = $1,
+           description = $2,
+           owner_id = $3,
+           status = $4,
+           deadline = $5
+       WHERE id = $6`,
       [name, description, owner_id, status, deadline, id]
     );
 
-    res.json("Project has been updated");
+    res.json({ message: "Project updated successfully" });
   } catch (err) {
     console.error(err.message);
   }
@@ -102,7 +108,7 @@ async function fetchProjectWithOwner(id) {
       return null;
     }
   } catch (err) {
-    console.error("Error executing query", err.stack);
+    console.error("Error executing query", err.message);
     throw err;
   }
 }

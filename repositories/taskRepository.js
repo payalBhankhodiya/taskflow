@@ -1,10 +1,8 @@
-
 import pool from "../db.js";
 
 async function createTask(req, res) {
   try {
     const {
-      id,
       title,
       description,
       project_id,
@@ -15,19 +13,10 @@ async function createTask(req, res) {
     } = req.body;
 
     const addQuery = await pool.query(
-      "INSERT INTO tasks ( id, title, description, project_id, assignee_id, status, priority, due_date) VALUES($1) RETURNING *",
-      [
-        id,
-        title,
-        description,
-        project_id,
-        assignee_id,
-        status,
-        priority,
-        due_date,
-      ]
+      "INSERT INTO tasks (title, description, project_id, assignee_id, status, priority, due_date) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *",
+      [title, description, project_id, assignee_id, status, priority, due_date]
     );
-    res.json(addQuery.raws[0]);
+    res.json(addQuery.rows[0]);
   } catch {
     console.error(err.message);
   }
@@ -49,7 +38,7 @@ async function getTaskById(req, res) {
   }
 }
 
-async function getTasksByProject(projectId) {
+async function getTaskByProject(projectId) {
   const getTaskByProjectyquery =
     "SELECT * FROM tasks WHERE project_id = $1 ORDER BY id ASC";
   const values = [projectId];
@@ -63,7 +52,7 @@ async function getTasksByProject(projectId) {
   }
 }
 
-async function getTasksByAssignee(userId) {
+async function getTaskByAssignee(userId) {
   const getTaskByUserquery = "SELECT * FROM tasks WHERE assignee_id = $1";
   const values = [userId];
 
@@ -90,7 +79,15 @@ async function updateUser(req, res) {
     } = req.body;
 
     const updatedTaskQuery = await pool.query(
-      "UPDATE tasks SET title, description, project_id, assignee_id, status, priority, due_date = $1 WHERE id= $2",
+      `UPDATE tasks
+       SET title = $1,
+           description = $2,
+           project_id = $3,
+           assignee_id = $4,
+           status = $5,
+           priority = $6,
+           due_date = $7
+       WHERE id = $8`,
       [
         title,
         description,
@@ -103,7 +100,7 @@ async function updateUser(req, res) {
       ]
     );
 
-    res.json("Task has been updated");
+    res.json({ message: "Task updated successfully" });
   } catch (err) {
     console.error(err.message);
   }

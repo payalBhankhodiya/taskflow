@@ -1,24 +1,21 @@
-import pool from '../db.js';
+import pool from "../db.js";
 
-async function dropTable(){
-
-    const dropTableQuery = `DROP TABLE IF EXISTS projects CASCADE;
+async function dropTable() {
+  const dropTableQuery = `DROP TABLE IF EXISTS users CASCADE;
                             DROP TABLE IF EXISTS projects CASCADE;`;
 
-    try{
-        await pool.query(dropTableQuery);
-        console.log('Table drop successfully!!');
-    } catch (error) {
-        console.log('Error arrived...', error);
-    }
+  try {
+    await pool.query(dropTableQuery);
+    console.log("Table drop successfully!!");
+  } catch (error) {
+    console.log("Error arrived...", error);
+  }
 }
 
 //dropTable();
 
-function reCreateTable(){
-
-
-    const tableQuery = `
+function reCreateTable() {
+  const tableQuery = `
         CREATE TABLE users(
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
@@ -42,15 +39,13 @@ function reCreateTable(){
         );
     `;
 
-    pool.query(tableQuery, (error, results) => {
-        if(error) {
-            console.error('Error creating tables : ',error);
-            return;
-        }
-        console.log('All tables created successfully!');
-    });
-    
+  pool.query(tableQuery, (error, results) => {
+    if (error) {
+      console.error("Error creating tables : ", error);
+      return;
+    }
+    console.log("All tables created successfully!");
+  });
 }
-
 
 reCreateTable();

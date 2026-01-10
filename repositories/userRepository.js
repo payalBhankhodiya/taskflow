@@ -2,18 +2,18 @@ import pool from "../db.js";
 
 async function createUser(req, res) {
   try {
-    const {  email, username, password_hash, full_name, avatar_url } =
-      req.body;
+    const { email, username, password_hash, full_name, avatar_url } = req.body;
     const addQuery = await pool.query(
-      "INSERT INTO users ( email, username, password_hash, full_name, avatar_url) VALUES($1,$2,$3,$4,$5) RETURNING *",
-      [ email, username, password_hash, full_name, avatar_url]
+      `INSERT INTO users (email, username, password_hash, full_name, avatar_url) VALUES($1,$2,$3,$4,$5) RETURNING *;`,
+      [email, username, password_hash, full_name, avatar_url]
     );
-    console.log(addQuery);
+    //console.log(addQuery);
     res.json(addQuery.rows[0]);
-  } catch(err) {
-    console.error("craete user error:",err.message);
+  } catch (err) {
+    console.error("create user error:", err.message);
   }
 }
+
 async function getUserById(req, res) {
   try {
     const { id } = req.params;
@@ -23,11 +23,11 @@ async function getUserById(req, res) {
     );
     res.json(userByIdQuery.rows[0]);
   } catch (err) {
-    console.error(err.message);
+    console.error("user get by id error : ", err.message);
   }
 }
 
-async function getUserByEmail(email) {
+async function getUserByEmail(req, res) {
   try {
     const { email } = req.params;
     const userByEmailQuery = await pool.query(
@@ -46,13 +46,20 @@ async function updateUser(req, res) {
     const { email, username, password_hash, full_name, avatar_url } = req.body;
 
     const updatedUserQuery = await pool.query(
-      "UPDATE users SET email, username, password_hash, full_name, avatar_url = $1 WHERE id= $2",
+      `UPDATE users
+       SET email = $1,
+           username = $2,
+           password_hash = $3,
+           full_name = $4,
+           avatar_url = $5
+       WHERE id = $6`,
       [email, username, password_hash, full_name, avatar_url, id]
     );
 
-    res.json("User has been updated");
+    res.json({ message: "User updated successfully" });
   } catch (err) {
-    console.error("User update error : ",err.message);
+    console.error("User update error :", err.message);
+    res.status(500).json(err.message);
   }
 }
 
@@ -65,16 +72,17 @@ async function deleteUser(req, res) {
     );
     res.json("User has been deleted");
   } catch (err) {
-    console.error(err.message);
+    console.error("not delete user error : ", err.message);
   }
 }
 
 async function getAllUsers(req, res) {
   try {
     const allUserQuery = await pool.query("SELECT * FROM users");
+    // console.log(allUserQuery)
     res.json(allUserQuery.rows);
   } catch (err) {
-    console.error("Getting user error : ",err.message);
+    console.error("Getting user error : ", err.message);
   }
 }
 
