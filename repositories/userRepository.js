@@ -21,6 +21,7 @@ async function getUserById(req, res) {
       "SELECT * FROM users WHERE id = $1",
       [id]
     );
+
     res.json(userByIdQuery.rows[0]);
   } catch (err) {
     console.error("user get by id error : ", err.message);

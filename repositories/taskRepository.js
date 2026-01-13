@@ -29,7 +29,7 @@ async function getTaskById(req, res) {
       `SELECT t.id, t.title, p.name, u.username FROM tasks t
       JOIN projects p ON t.project_id = p.id
       JOIN users u ON t.assignee_id = u.id
-       WHERE id = $1`,
+       WHERE t.id = $1`,
       [id]
     );
     res.json(taskByIdQuery.rows[0]);
@@ -38,34 +38,35 @@ async function getTaskById(req, res) {
   }
 }
 
-async function getTaskByProject(projectId) {
-  const getTaskByProjectyquery =
+async function getTaskByProject(req, res) {
+  const { project_id } = req.params;
+  const getTaskByProjectQuery =
     "SELECT * FROM tasks WHERE project_id = $1 ORDER BY id ASC";
-  const values = [projectId];
 
   try {
-    const res = await pool.query(getTaskByProjectyquery, values);
-    return res.rows;
+    const result = await pool.query(getTaskByProjectQuery, [project_id]);
+    res.status(200).json(result.rows);
   } catch (err) {
     console.error("Error fetching tasks by project ID:", err);
-    throw err;
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 
-async function getTaskByAssignee(userId) {
-  const getTaskByUserquery = "SELECT * FROM tasks WHERE assignee_id = $1";
-  const values = [userId];
+async function getTaskByAssignee(req, res) {
+  const { assignee_id } = req.params;
+  const getTaskByUserquery =
+    "SELECT * FROM tasks WHERE assignee_id = $1 ORDER BY id ASC";
 
   try {
-    const res = await pool.query(getTaskByUserquery, values);
-    return res.rows;
+    const result = await pool.query(getTaskByUserquery, [assignee_id]);
+    res.status(200).json(result.rows);
   } catch (err) {
-    console.error("Error executing query", err.stack);
-    throw err;
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 
-async function updateUser(req, res) {
+async function updateTask(req, res) {
   try {
     const { id } = req.params;
     const {
@@ -119,47 +120,66 @@ async function deleteTask(req, res) {
   }
 }
 
-async function addLabelFromTask(taskId, labelId) {
-  const addLabelsQuery = `
-        INSERT INTO task_labels (task_id, label_id)
-        VALUES ($1, $2)
-        ON CONFLICT DO NOTHING;
-    `;
-  const values = [taskId, labelId];
-
+async function getAllTask(req, res) {
   try {
-    await pool.query(addLabelsQuery, values);
-    console.log(`Label ${labelId} added to task ${taskId}.`);
+    const allTaskQuery = await pool.query("SELECT * FROM tasks");
+    // console.log(allUserQuery)
+    res.json(allTaskQuery.rows);
   } catch (err) {
-    console.error("Error adding label to task", err);
+    console.error("Getting task error : ", err.message);
   }
 }
 
-async function removeLabelFromTask(taskId, labelId) {
+async function addLabelFromTask(req, res) {
+  const { task_id, label_id } = req.body;
+
+  const addLabelsQuery = `
+        INSERT INTO task_labels (task_id, label_id)
+        VALUES ($1, $2)
+        ON CONFLICT DO NOTHING RETURNING *;
+    `;
+  const values = [task_id, label_id];
+
+  try {
+    const result = await pool.query(addLabelsQuery, values);
+    res.status(200).json(result.rows[0]);
+  } catch (err) {
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+async function removeLabelFromTask(req, res) {
+  const { task_id, label_id } = req.params;
+
   const removeLabelQuery = `
         DELETE FROM task_labels
         WHERE task_id = $1 AND label_id = $2;
     `;
-  const values = [taskId, labelId];
+  const values = [task_id, label_id];
 
   try {
-    const res = await pool.query(removeLabelQuery, values);
-    if (res.rowCount > 0) {
-      console.log(`Label ${labelId} removed from task ${taskId}.`);
-    } else {
-      console.log("Label association not found.");
-    }
+    const result = await pool.query(removeLabelQuery, values);
+    res.status(200).json("Task label has been deleted!!!");
   } catch (err) {
-    console.error("Error removing label from task", err);
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 
-async function getTaskByIdWithLabels(taskId) {
+async function getTaskByIdWithLabels(req, res) {
+  const { id } = req.params;
+
   const query = `
         SELECT
             t.id,
             t.title,
             t.description,
+            t.project_id,
+            t.assignee_id,
+            t.status,
+            t.priority,
+            t.due_date,
             COALESCE(ARRAY_AGG(l.name ORDER BY l.name) , '{}') AS labels
         FROM
             tasks t
@@ -170,45 +190,63 @@ async function getTaskByIdWithLabels(taskId) {
         WHERE
             t.id = $1
         GROUP BY
-            t.id, t.description, t.completed;
+            t.id;
     `;
 
   try {
-    const result = await pool.query(query, [taskId]);
-    if (result.rows.length > 0) {
-      return result.rows[0];
-    } else {
-      return null;
-    }
-  } catch (error) {
-    console.error("Error fetching task by ID:", error);
-    throw error;
+    const result = await pool.query(query, [id]);
+    res.status(200).json(result.rows[0]);
+  } catch (err) {
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 
-async function getTasksByLabel(labelId) {
+async function getTasksByLabel(req, res) {
+  const { label_id } = req.params;
+
   const query = `
-    SELECT 
-      tasks.id, 
-      tasks.title, 
-      tasks.description, 
-      tasks.due_date,
-      tasks.status
-    FROM 
-      tasks
+   SELECT 
+      t.id, 
+      t.title, 
+      t.description, 
+	  t.project_id,
+	  t.assignee_id,
+      t.status,
+	  t.priority,
+	  t.due_date,
+	  t.created_at,
+	  t.updated_at
+	 FROM 
+      task_labels tl
     JOIN 
-      task_labels ON tasks.id = task_labels.task_id
+      tasks t ON t.id = tl.task_id
+	JOIN
+	  labels l ON l.id = tl.label_id
     WHERE 
-      task_labels.label_id = $1;
+      tl.label_id = $1;
   `;
-  const values = [labelId];
+  const values = [label_id];
 
   try {
     const result = await pool.query(query, values);
-    console.log(`Getting ${result.rows.length} tasks for label ID ${labelId}`);
-    return result.rows;
+    res.status(200).json(result.rows);
   } catch (err) {
-    console.error(`Error fetching tasks for label ID ${labelId}:`, err);
-    throw err;
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
+
+export {
+  createTask,
+  getTaskById,
+  updateTask,
+  deleteTask,
+  getAllTask,
+  getTaskByProject,
+  getTaskByAssignee,
+  addLabelFromTask,
+  removeLabelFromTask,
+  getTaskByIdWithLabels,
+  getTasksByLabel,
+};

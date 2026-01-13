@@ -81,49 +81,36 @@ async function getAllProjects(req, res) {
   }
 }
 
-async function fetchProjectWithOwner(id) {
-  const fetchQuery = {
-    text: `
-      SELECT 
-        p.id AS project_id, 
-        p.name, 
-        p.description, 
-        u.username AS owner_username,
-        p.created_at
+async function fetchProjectWithOwner(req, res) {
+  const { owner_id } = req.params;
+
+  const fetchQuery = `
+      SELECT p.id,p.name,p.description,p.owner_id,p.status,p.deadline ,p.created_at,p.updated_at, u.username
       FROM projects p
       INNER JOIN users u ON p.owner_id = u.id
-      WHERE p.id = $1
-    `,
-    values: [id],
-  };
+      WHERE u.id = $1
+    `;
 
   try {
-    const res = await pool.query(fetchQuery);
-
-    if (res.rows.length > 0) {
-      console.log("Project fetched successfully:", res.rows[0]);
-      return res.rows[0];
-    } else {
-      console.log(`No project found with ID: ${id}`);
-      return null;
-    }
+    const result = await pool.query(fetchQuery, [owner_id]);
+    res.status(200).json(result.rows);
   } catch (err) {
-    console.error("Error executing query", err.message);
-    throw err;
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 
-async function getProjectsByUserId(id) {
+async function getProjectsByUserId(req, res) {
+  const { owner_id } = req.params;
+
+  const query = "SELECT * FROM projects WHERE owner_id = $1";
+
   try {
-    const query = "SELECT * FROM projects WHERE owner_id = $1";
-    const values = [id];
-
-    const result = await pool.query(query, values);
-
-    return result.rows;
-  } catch (error) {
-    console.error("Error fetching projects for user ID:", id, error);
-    throw error;
+    const result = await pool.query(query, [owner_id]);
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 

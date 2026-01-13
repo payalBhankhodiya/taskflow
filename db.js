@@ -4,7 +4,7 @@ const pool = new Pool({
   host: "localhost",
   user: "postgres",
   database: "taskflow",
-  password: "postgres90",
+  password: "postgres01",
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,

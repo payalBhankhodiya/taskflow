@@ -15,7 +15,29 @@ import {
   updateProject,
   deleteProject,
   getAllProjects,
+  fetchProjectWithOwner,
+  getProjectsByUserId,
 } from "./repositories/projectRepository.js";
+
+import {
+  createTask,
+  getTaskById,
+  updateTask,
+  deleteTask,
+  getAllTask,
+  getTaskByProject,
+  getTaskByAssignee,
+  addLabelFromTask,
+  removeLabelFromTask,
+  getTaskByIdWithLabels,
+  getTasksByLabel,
+} from "./repositories/taskRepository.js";
+
+import {
+  getProjectMemberStats,
+  getProjectTaskStats,
+  getProjectWithTaskCounts,
+} from "./repositories/statsRepository.js";
 
 const app = express();
 const PORT = 4500;
@@ -33,15 +55,34 @@ app.get("/", (req, res) => {
 
 app.post("/api/users", createUser);
 app.get("/api/users/:id", getUserById);
-app.put("/api/users/:id", updateUser);
+app.post("/api/users/:email", getUserByEmail);
+app.patch("/api/users/:id", updateUser);
 app.delete("/api/users/:id", deleteUser);
 app.get("/api/users", getAllUsers);
 
 app.post("/api/projects", createProject);
 app.get("/api/projects/:id", getProjectById);
-app.put("/api/projects/:id", updateProject);
+app.patch("/api/projects/:id", updateProject);
 app.delete("/api/projects/:id", deleteProject);
 app.get("/api/projects", getAllProjects);
+app.get("/api/projects/owner/:owner_id", fetchProjectWithOwner);
+app.get("/api/projects/users/:owner_id", getProjectsByUserId);
+
+app.post("/api/tasks", createTask);
+app.get("/api/tasks/:id", getTaskById);
+app.patch("/api/tasks/:id", updateTask);
+app.delete("/api/tasks/:id", deleteTask);
+app.get("/api/tasks", getAllTask);
+app.get("/api/projects/:project_id/tasks", getTaskByProject);
+app.get("/api/users/:assignee_id/tasks", getTaskByAssignee);
+app.post("/api/tasks/addLabel", addLabelFromTask);
+app.delete("/api/tasks/:task_id/removeLabel/:label_id", removeLabelFromTask);
+app.get("/api/tasks/labels/:id", getTaskByIdWithLabels);
+app.get("/api/labels/:label_id/tasks", getTasksByLabel);
+
+app.get("/api/projects/taskStats/:project_id", getProjectTaskStats);
+app.get("/api/project/memberStats/:project_id", getProjectMemberStats);
+app.get("/api/projects/tasks/count", getProjectWithTaskCounts);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
