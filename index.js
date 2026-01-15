@@ -34,9 +34,13 @@ import {
 } from "./repositories/taskRepository.js";
 
 import {
+  getHighPerformers,
+  getLatestTaskPerProject,
   getProjectMemberStats,
   getProjectTaskStats,
   getProjectWithTaskCounts,
+  getUnassignedUsers,
+  searchTasks,
 } from "./repositories/statsRepository.js";
 
 const app = express();
@@ -83,6 +87,15 @@ app.get("/api/labels/:label_id/tasks", getTasksByLabel);
 app.get("/api/projects/taskStats/:project_id", getProjectTaskStats);
 app.get("/api/project/memberStats/:project_id", getProjectMemberStats);
 app.get("/api/projects/tasks/count", getProjectWithTaskCounts);
+
+app.get("/api/search/tasks",searchTasks);
+
+app.get("/api/unassign/users",getUnassignedUsers);
+app.get("/api/latestTask/projects",getLatestTaskPerProject);
+app.get("/api/performers/tasks",getHighPerformers);
+
+
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
