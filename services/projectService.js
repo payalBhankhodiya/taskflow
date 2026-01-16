@@ -128,4 +128,50 @@ async function archiveProject(req, res) {
   }
 }
 
-export { createProjectWithSetup, archiveProject };
+async function transferTasks(req, res) {
+  const { project_id, fromUserId, toUserId } = req.params;
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const usersExist = await client.query(
+      "SELECT COUNT(id) FROM users WHERE id IN ($1, $2)",
+      [fromUserId, toUserId]
+    );
+
+    if (parseInt(usersExist.rows[0].count, 10) !== 2) {
+      throw new Error("One or both users do not exist");
+    }
+
+    const projectExist = await client.query(
+      "SELECT COUNT(id) FROM projects WHERE id = $1",
+      [project_id]
+    );
+
+    if (parseInt(projectExist.rows[0].count, 10) === 0) {
+      throw new Error("Project does not exists");
+    }
+
+    const result = await client.query(
+      "UPDATE tasks SET assignee_id = $1 where assignee_id = $2 AND project_id = $3 RETURNING id;",
+      [toUserId, fromUserId, project_id]
+    );
+
+    // const tranferCount = result.rows.count;
+    // console.log("transfer count : ", tranferCount);
+
+    await client.query("COMMIT");
+
+    res.status(200).json({ message: `Successfully transferred tasks.` });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Error during task transfer:", error);
+    res.status(500).json({ error: error.message || "Task transfer failed" });
+  } finally {
+    client.release();
+  }
+}
+
+export { createProjectWithSetup, archiveProject, transferTasks };

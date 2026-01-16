@@ -46,6 +46,7 @@ import {
 import {
   archiveProject,
   createProjectWithSetup,
+  transferTasks,
 } from "./services/projectService.js";
 
 const app = express();
@@ -103,6 +104,10 @@ app.get("/api/performers/tasks", getHighPerformers);
 
 app.get("/api/create/project", createProjectWithSetup);
 app.get("/api/archive/project/:project_id", archiveProject);
+
+//Phase : 5.2
+
+app.get("/api/transfer/tasks/:project_id/:fromUserId/:toUserId",transferTasks);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
