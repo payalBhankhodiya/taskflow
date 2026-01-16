@@ -43,6 +43,11 @@ import {
   searchTasks,
 } from "./repositories/statsRepository.js";
 
+import {
+  archiveProject,
+  createProjectWithSetup,
+} from "./services/projectService.js";
+
 const app = express();
 const PORT = 4500;
 
@@ -88,14 +93,16 @@ app.get("/api/projects/taskStats/:project_id", getProjectTaskStats);
 app.get("/api/project/memberStats/:project_id", getProjectMemberStats);
 app.get("/api/projects/tasks/count", getProjectWithTaskCounts);
 
-app.get("/api/search/tasks",searchTasks);
+app.get("/api/search/tasks", searchTasks);
 
-app.get("/api/unassign/users",getUnassignedUsers);
-app.get("/api/latestTask/projects",getLatestTaskPerProject);
-app.get("/api/performers/tasks",getHighPerformers);
+app.get("/api/unassign/users", getUnassignedUsers);
+app.get("/api/latestTask/projects", getLatestTaskPerProject);
+app.get("/api/performers/tasks", getHighPerformers);
 
+// Phase : 5.1
 
-
+app.get("/api/create/project", createProjectWithSetup);
+app.get("/api/archive/project", archiveProject);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

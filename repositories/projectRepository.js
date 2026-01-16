@@ -25,18 +25,6 @@ async function getProjectById(req, res) {
   }
 }
 
-// async function getProjectsByEmail(email) {
-
-//   try{
-//     const { email } = req.params;
-//     const userByEmailQuery = await pool.query('SELECT * FROM projects WHERE email = $1', [email]);
-//     res.json(userByEmailQuery.rows[0]);
-//   } catch(error) {
-//       console.error(error);
-//    }
-
-// };
-
 async function updateProject(req, res) {
   try {
     const { id } = req.params;
@@ -73,13 +61,83 @@ async function deleteProject(req, res) {
 }
 
 async function getAllProjects(req, res) {
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const offset = (page - 1) * limit;
+
   try {
-    const allProjectsQuery = await pool.query("SELECT * FROM projects");
-    res.json(allProjectsQuery.rows);
+    const { id, name, status, searchTerm } = req.query;
+
+    let whereClauses = [];
+    let values = [];
+    let paramIndex = 1;
+
+    // Filters
+
+    if (id) {
+      whereClauses.push(`id = $${paramIndex++}`);
+      values.push(id);
+    }
+
+    if (name) {
+      whereClauses.push(`name ILIKE $${paramIndex++}`);
+      values.push(`%${name}%`);
+    }
+
+    if (status) {
+      const statusArray = Array.isArray(status) ? status : [status];
+      whereClauses.push(`status = ANY($${paramIndex++})`);
+      values.push(statusArray);
+    }
+
+    if (searchTerm) {
+      whereClauses.push(`description ILIKE $${paramIndex++}`);
+      values.push(`%${searchTerm}%`);
+    }
+
+    const whereSQL = whereClauses.length
+      ? `WHERE ${whereClauses.join(" AND ")}`
+      : "";
+
+    // Main query
+    
+    const dataQuery = `
+      SELECT *
+      FROM projects
+      ${whereSQL}
+      ORDER BY id
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+    `;
+
+    const dataValues = [...values, limit, offset];
+    const dataResult = await pool.query(dataQuery, dataValues);
+
+   
+    const countQuery = `
+      SELECT COUNT(*)
+      FROM projects
+      ${whereSQL}
+    `;
+    const countResult = await pool.query(countQuery, values);
+
+    const totalUsers = parseInt(countResult.rows[0].count, 10);
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    res.json({
+      data: dataResult.rows,
+      pagination: {
+        page,
+        limit,
+        totalUsers,
+        totalPages,
+      },
+    });
   } catch (err) {
-    console.error(err.message);
+    console.error("Error executing query:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
+
 
 async function fetchProjectWithOwner(req, res) {
   const { owner_id } = req.params;

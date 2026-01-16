@@ -78,12 +78,36 @@ async function deleteUser(req, res) {
 }
 
 async function getAllUsers(req, res) {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+
+  const offset = (page - 1) * limit;
+
   try {
-    const allUserQuery = await pool.query("SELECT * FROM users");
-    // console.log(allUserQuery)
-    res.json(allUserQuery.rows);
+    const query = "SELECT * FROM users ORDER BY id LIMIT $1 OFFSET $2";
+    const values = [limit, offset];
+
+    const allUserQuery = await pool.query(query, values);
+    const users = allUserQuery.rows;
+
+    const countQuery = "SELECT COUNT(*) FROM users;";
+    const countResult = await pool.query(countQuery);
+    const totalUsers = parseInt(countResult.rows[0].count);
+    const totalPages = Math.ceil(totalUsers / limit);
+    const pagination = {
+      page,
+      limit,
+      totalUsers,
+      totalPages
+    };
+
+    res.json({
+      data: users,
+      pagination,
+    });
   } catch (err) {
-    console.error("Getting user error : ", err.message);
+    console.error(err.message);
+    res.status(500).send("Server Error");
   }
 }
 

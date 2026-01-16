@@ -122,9 +122,74 @@ async function deleteTask(req, res) {
 
 async function getAllTask(req, res) {
   try {
-    const allTaskQuery = await pool.query("SELECT * FROM tasks");
-    // console.log(allUserQuery)
-    res.json(allTaskQuery.rows);
+    const {
+      project_id,
+      assignee_id,
+      status,
+      priority,
+      dueDateFrom,
+      dueDateTo,
+      searchTerm,
+      labels,
+    } = req.query;
+
+    console.log("query : ", req.query);
+
+    let query = `SELECT * FROM tasks
+                 WHERE 1=1`;
+
+    const values = [];
+
+    if (project_id) {
+      query += ` AND project_id = $${values.length + 1}`;
+      values.push(project_id);
+    }
+
+    if (assignee_id) {
+      query += ` AND assignee_id = $${values.length + 1}`;
+      values.push(assignee_id);
+    }
+
+    if (status) {
+      const statusArray = Array.isArray(status) ? status : [status];
+      query += ` AND status = ANY($${values.length + 1})`;
+      values.push(statusArray);
+    }
+
+    if (priority) {
+      const priorityArray = Array.isArray(priority) ? priority : [priority];
+      query += ` AND priority = ANY($${values.length + 1})`;
+      values.push(priorityArray);
+    }
+
+    if (dueDateFrom) {
+      query += ` AND due_date >= $${values.length + 1}`;
+      values.push(dueDateFrom);
+    }
+
+    if (dueDateTo) {
+      query += ` AND due_date <= $${values.length + 1}`;
+      values.push(dueDateTo);
+    }
+
+    if (searchTerm) {
+      query += ` AND (title ILIKE $${values.length + 1} OR description ILIKE $${
+        values.length + 1
+      })`;
+      values.push(`%${searchTerm}%`);
+    }
+
+    if (labels) {
+      const labelArray = Array.isArray(labels) ? labels : [labels];
+      query += ` AND EXISTS (SELECT 1 FROM task_labels tl WHERE tl.task_id = tasks.id AND tl.label_id = ANY($${
+        values.length + 1
+      }))`;
+      values.push(labelArray);
+    }
+
+    console.log("query", query);
+    const result = await pool.query(query, values);
+    res.json(result.rows);
   } catch (err) {
     console.error("Getting task error : ", err.message);
   }
