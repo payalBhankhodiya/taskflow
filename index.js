@@ -102,7 +102,7 @@ app.get("/api/performers/tasks", getHighPerformers);
 // Phase : 5.1
 
 app.get("/api/create/project", createProjectWithSetup);
-app.get("/api/archive/project", archiveProject);
+app.get("/api/archive/project/:project_id", archiveProject);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
