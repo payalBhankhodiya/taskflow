@@ -45,6 +45,7 @@ import {
 
 import {
   archiveProject,
+  bulkCreateTasks,
   createProjectWithSetup,
   transferTasks,
 } from "./services/projectService.js";
@@ -107,7 +108,9 @@ app.get("/api/archive/project/:project_id", archiveProject);
 
 //Phase : 5.2
 
-app.get("/api/transfer/tasks/:project_id/:fromUserId/:toUserId",transferTasks);
+app.get("/api/transfer/tasks/:project_id/:fromUserId/:toUserId", transferTasks);
+
+app.post("/api/bulk/tasks/:project_id", bulkCreateTasks);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

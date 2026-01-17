@@ -1,5 +1,7 @@
 import pool from "../db.js";
 
+// 5.1
+
 async function createProjectWithSetup(req, res) {
   const { projectData, initialTasks = [], initialLabels = [] } = req.body;
 
@@ -128,6 +130,8 @@ async function archiveProject(req, res) {
   }
 }
 
+// 5.2
+
 async function transferTasks(req, res) {
   const { project_id, fromUserId, toUserId } = req.params;
 
@@ -174,4 +178,81 @@ async function transferTasks(req, res) {
   }
 }
 
-export { createProjectWithSetup, archiveProject, transferTasks };
+// 5.3
+
+async function bulkCreateTasks(req, res) {
+  const { project_id } = req.params;
+  const { tasksArray = [] } = req.body;
+
+  if (!project_id || !Array.isArray(tasksArray) || tasksArray.length === 0) {
+    return res.status(400).json({
+      error:
+        "Invalid input: project_id and a non-empty tasksArray are required.",
+    });
+  }
+
+  const titles = [];
+  const descriptions = [];
+  const projectIDs = [];
+  const assigneeIDs = [];
+  const statuses = [];
+  const priorities = [];
+  const dueDates = [];
+
+  for (const task of tasksArray) {
+    titles.push(task.title);
+    descriptions.push(task.description),
+      projectIDs.push(task.project_id),
+      assigneeIDs.push(task.assignee_id),
+      statuses.push(task.status),
+      priorities.push(task.priority),
+      dueDates.push(task.due_date);
+  }
+
+  const insertQuery = `
+    INSERT INTO tasks (title,description,project_id,assignee_id,status,priority,due_date)
+    SELECT * 
+    FROM UNNEST($1::TEXT[], $2::TEXT[], $3::INT[], $4::INT[], $5::TEXT[], $6::TEXT[], $7::DATE[]);   
+`;
+  const values = [
+    titles,
+    descriptions,
+    projectIDs,
+    assigneeIDs,
+    statuses,
+    priorities,
+    dueDates,
+  ];
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const result = await client.query(insertQuery, values);
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      message: "Insert multiple tasks successfully",
+      project_id: project_id,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+
+    console.error("Transaction failed:", error);
+
+    res.status(500).json({
+      error: "Failed to insert tasks : ",
+      details: error.message,
+    });
+  } finally {
+    client.release();
+  }
+}
+export {
+  createProjectWithSetup,
+  archiveProject,
+  transferTasks,
+  bulkCreateTasks,
+};
