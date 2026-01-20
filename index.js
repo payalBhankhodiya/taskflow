@@ -49,7 +49,7 @@ import {
   createProjectWithSetup,
   transferTasks,
 } from "./services/projectService.js";
-import { getProjectReport } from "./services/otherServices.js";
+import { getCompletionTrend, getProjectReport, getTaskSequence, getUserRankings } from "./services/otherServices.js";
 
 const app = express();
 const PORT = 4500;
@@ -118,6 +118,12 @@ app.post("/api/bulk/tasks/:project_id", bulkCreateTasks);
 // Phase : 6.3
 
 app.get("/api/report/projects/:project_id", getProjectReport);
+
+// Phase : 6.4
+
+app.get("/api/ranking/users/:project_id", getUserRankings);
+app.get("/api/completion/tasks/:project_id", getCompletionTrend);
+app.get("/api/sequence/tasks/:project_id", getTaskSequence);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

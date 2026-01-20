@@ -61,12 +61,6 @@ GROUP BY u.id,u.username;
 
 SELECT * FROM user_workload;
 
-
-
-
-
-
-
 CREATE VIEW overdue_tasks AS
 SELECT 
     id, 

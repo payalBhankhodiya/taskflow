@@ -94,4 +94,78 @@ async function getProjectReport(req, res) {
   }
 }
 
-export { getProjectReport };
+// 6.4
+
+async function getUserRankings(req, res) {
+  const { project_id } = req.params;
+
+  const query = `
+    SELECT u.id, u.username, COUNT(t.id) AS completed_tasks,
+        RANK() OVER (ORDER BY COUNT(t.id) DESC) AS rank
+        FROM users u
+        JOIN tasks t
+        ON t.assignee_id = u.id
+        WHERE t.project_id = $1 AND t.status = 'done'
+        GROUP BY u.id, u.username
+        ORDER BY rank;
+  `;
+  const values = [project_id];
+
+  try {
+    const result = await pool.query(query, values);
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+async function getCompletionTrend(req, res) {
+  const { project_id } = req.params;
+
+  const query = `
+    SELECT
+        DATE(created_at) AS task_date,
+        COUNT(*) FILTER (WHERE status = 'done') AS completed_count,
+        SUM(COUNT(*) FILTER (WHERE status = 'done')) OVER (ORDER BY DATE(created_at)) AS running_total_completed
+        FROM tasks
+        WHERE project_id = $1
+        GROUP BY DATE(created_at)
+        ORDER BY task_date;
+  `;
+  const values = [project_id];
+
+  try {
+    const result = await pool.query(query, values);
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+async function getTaskSequence(req, res) {
+  const { project_id } = req.params;
+
+  const query = `
+   SELECT
+        LAG(title, 1, 'No previous task') OVER (ORDER BY due_date) AS previous_task,
+        title AS current_task,
+        LEAD(title, 1, 'No next task') OVER (ORDER BY due_date) AS next_task,
+        due_date
+    FROM tasks
+    WHERE project_id = $1
+    ORDER BY due_date;
+  `;
+  const values = [project_id];
+
+  try {
+    const result = await pool.query(query, values);
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export { getProjectReport, getUserRankings, getCompletionTrend, getTaskSequence };
