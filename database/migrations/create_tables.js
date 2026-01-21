@@ -66,6 +66,9 @@ async function alterTable() {
 
     ALTER TABLE projects 
     ADD COLUMN deadline DATE;
+
+    ALTER TABLE tasks 
+    ADD COLUMN metadata JSONB;
     `;
 
   try {

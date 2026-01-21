@@ -168,4 +168,69 @@ async function getTaskSequence(req, res) {
   }
 }
 
-export { getProjectReport, getUserRankings, getCompletionTrend, getTaskSequence };
+// 6.5
+
+async function updateTaskMetadata(req, res) {
+  const { id } = req.params;
+  const { metadata } = req.body;
+
+  const query = `
+        UPDATE tasks
+        SET metadata = $1::jsonb
+        WHERE id = $2
+        RETURNING *;
+    `;
+  const values = [metadata, id];
+
+  try {
+    const result = await pool.query(query, values);
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+async function getTasksWithMetadataField(req, res) {
+  const { project_id, fieldName } = req.params;
+  const query = `
+        SELECT metadata FROM tasks
+        WHERE project_id = $1 AND metadata ? $2;
+    `;
+  const values = [project_id, fieldName];
+
+  try {
+    const result = await pool.query(query, values);
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+async function getTaskByTag(req, res) {
+  const { project_id, tag } = req.params;
+  const query = `
+        SELECT * FROM tasks
+        WHERE project_id = $1 AND metadata->'tags' ?| ARRAY[$2];
+    `;
+  const values = [project_id, tag];
+
+  try {
+    const result = await pool.query(query, values);
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export {
+  getProjectReport,
+  getUserRankings,
+  getCompletionTrend,
+  getTaskSequence,
+  updateTaskMetadata,
+  getTasksWithMetadataField,
+  getTaskByTag,
+};

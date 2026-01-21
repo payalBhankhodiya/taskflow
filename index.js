@@ -49,7 +49,15 @@ import {
   createProjectWithSetup,
   transferTasks,
 } from "./services/projectService.js";
-import { getCompletionTrend, getProjectReport, getTaskSequence, getUserRankings } from "./services/otherServices.js";
+import {
+  getCompletionTrend,
+  getProjectReport,
+  getTaskByTag,
+  getTaskSequence,
+  getTasksWithMetadataField,
+  getUserRankings,
+  updateTaskMetadata,
+} from "./services/otherServices.js";
 
 const app = express();
 const PORT = 4500;
@@ -124,6 +132,15 @@ app.get("/api/report/projects/:project_id", getProjectReport);
 app.get("/api/ranking/users/:project_id", getUserRankings);
 app.get("/api/completion/tasks/:project_id", getCompletionTrend);
 app.get("/api/sequence/tasks/:project_id", getTaskSequence);
+
+// Phase : 6.5
+
+app.get("/api/update/metadata/tasks/:id", updateTaskMetadata);
+app.get(
+  "/api/projects/:project_id/metadata-field/:fieldName",
+  getTasksWithMetadataField,
+);
+app.get("/api/tasks/:project_id/byTag/:tag", getTaskByTag);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
