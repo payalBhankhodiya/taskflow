@@ -14,7 +14,7 @@ async function createTask(req, res) {
 
     const addQuery = await pool.query(
       "INSERT INTO tasks (title, description, project_id, assignee_id, status, priority, due_date) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *",
-      [title, description, project_id, assignee_id, status, priority, due_date]
+      [title, description, project_id, assignee_id, status, priority, due_date],
     );
     res.json(addQuery.rows[0]);
   } catch {
@@ -30,7 +30,7 @@ async function getTaskById(req, res) {
       JOIN projects p ON t.project_id = p.id
       JOIN users u ON t.assignee_id = u.id
        WHERE t.id = $1`,
-      [id]
+      [id],
     );
     res.json(taskByIdQuery.rows[0]);
   } catch (err) {
@@ -98,7 +98,7 @@ async function updateTask(req, res) {
         priority,
         due_date,
         id,
-      ]
+      ],
     );
 
     res.json({ message: "Task updated successfully" });
@@ -112,7 +112,7 @@ async function deleteTask(req, res) {
     const { id } = req.params;
     const deleteTaskQuery = await pool.query(
       "DELETE FROM tasks WHERE id = $1",
-      [id]
+      [id],
     );
     res.json("Task has been deleted");
   } catch (err) {
@@ -133,65 +133,87 @@ async function getAllTask(req, res) {
       labels,
     } = req.query;
 
-    console.log("query : ", req.query);
-
-    let query = `SELECT * FROM tasks
-                 WHERE 1=1`;
+    let query = `
+      SELECT *,
+             ${
+               searchTerm
+                 ? `ts_rank(search_vector, plainto_tsquery('english', $1)) AS rank`
+                 : `0 AS rank`
+             }
+      FROM tasks
+      WHERE 1=1
+    `;
 
     const values = [];
+    let paramIndex = 1;
+
+    if (searchTerm) {
+      query += ` AND search_vector @@ plainto_tsquery('english', $${paramIndex})`;
+      values.push(searchTerm);
+      paramIndex++;
+    }
 
     if (project_id) {
-      query += ` AND project_id = $${values.length + 1}`;
+      query += ` AND project_id = $${paramIndex}`;
       values.push(project_id);
+      paramIndex++;
     }
 
     if (assignee_id) {
-      query += ` AND assignee_id = $${values.length + 1}`;
+      query += ` AND assignee_id = $${paramIndex}`;
       values.push(assignee_id);
+      paramIndex++;
     }
 
     if (status) {
       const statusArray = Array.isArray(status) ? status : [status];
-      query += ` AND status = ANY($${values.length + 1})`;
+      query += ` AND status = ANY($${paramIndex})`;
       values.push(statusArray);
+      paramIndex++;
     }
 
     if (priority) {
       const priorityArray = Array.isArray(priority) ? priority : [priority];
-      query += ` AND priority = ANY($${values.length + 1})`;
+      query += ` AND priority = ANY($${paramIndex})`;
       values.push(priorityArray);
+      paramIndex++;
     }
 
     if (dueDateFrom) {
-      query += ` AND due_date >= $${values.length + 1}`;
+      query += ` AND due_date >= $${paramIndex}`;
       values.push(dueDateFrom);
+      paramIndex++;
     }
 
     if (dueDateTo) {
-      query += ` AND due_date <= $${values.length + 1}`;
+      query += ` AND due_date <= $${paramIndex}`;
       values.push(dueDateTo);
-    }
-
-    if (searchTerm) {
-      query += ` AND (title ILIKE $${values.length + 1} OR description ILIKE $${
-        values.length + 1
-      })`;
-      values.push(`%${searchTerm}%`);
+      paramIndex++;
     }
 
     if (labels) {
       const labelArray = Array.isArray(labels) ? labels : [labels];
-      query += ` AND EXISTS (SELECT 1 FROM task_labels tl WHERE tl.task_id = tasks.id AND tl.label_id = ANY($${
-        values.length + 1
-      }))`;
+      query += `
+        AND EXISTS (
+          SELECT 1
+          FROM task_labels tl
+          WHERE tl.task_id = tasks.id
+          AND tl.label_id = ANY($${paramIndex})
+        )
+      `;
       values.push(labelArray);
+      paramIndex++;
     }
 
-    console.log("query", query);
+    if (searchTerm) {
+      query += ` ORDER BY rank DESC`;
+    }
+
     const result = await pool.query(query, values);
     res.json(result.rows);
   } catch (err) {
-    console.error("Getting task error : ", err.message);
+    console.error("Getting task error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 
@@ -275,19 +297,19 @@ async function getTasksByLabel(req, res) {
       t.id, 
       t.title, 
       t.description, 
-	  t.project_id,
-	  t.assignee_id,
+	    t.project_id,
+	    t.assignee_id,
       t.status,
-	  t.priority,
-	  t.due_date,
-	  t.created_at,
-	  t.updated_at
-	 FROM 
+	    t.priority,
+	    t.due_date,
+	    t.created_at,
+	    t.updated_at
+	  FROM 
       task_labels tl
     JOIN 
       tasks t ON t.id = tl.task_id
-	JOIN
-	  labels l ON l.id = tl.label_id
+	  JOIN
+	    labels l ON l.id = tl.label_id
     WHERE 
       tl.label_id = $1;
   `;

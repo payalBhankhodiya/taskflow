@@ -142,16 +142,16 @@ async function transferTasks(req, res) {
 
     const usersExist = await client.query(
       "SELECT COUNT(id) FROM users WHERE id IN ($1, $2)",
-      [fromUserId, toUserId]
+      [fromUserId, toUserId],
     );
 
-    if (parseInt(usersExist.rows[0].count, 10) !== 2) {
+    if (parseInt(usersExist.rows[0].count) !== 2) {
       throw new Error("One or both users do not exist");
     }
 
     const projectExist = await client.query(
       "SELECT COUNT(id) FROM projects WHERE id = $1",
-      [project_id]
+      [project_id],
     );
 
     if (parseInt(projectExist.rows[0].count, 10) === 0) {
@@ -160,7 +160,7 @@ async function transferTasks(req, res) {
 
     const result = await client.query(
       "UPDATE tasks SET assignee_id = $1 where assignee_id = $2 AND project_id = $3 RETURNING id;",
-      [toUserId, fromUserId, project_id]
+      [toUserId, fromUserId, project_id],
     );
 
     // const tranferCount = result.rows.count;
@@ -201,12 +201,12 @@ async function bulkCreateTasks(req, res) {
 
   for (const task of tasksArray) {
     titles.push(task.title);
-    descriptions.push(task.description),
+    (descriptions.push(task.description),
       projectIDs.push(task.project_id),
       assigneeIDs.push(task.assignee_id),
       statuses.push(task.status),
       priorities.push(task.priority),
-      dueDates.push(task.due_date);
+      dueDates.push(task.due_date));
   }
 
   const insertQuery = `

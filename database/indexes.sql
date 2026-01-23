@@ -75,3 +75,62 @@ WHERE
 
 
 SELECT * FROM overdue_tasks;
+
+
+-- Bonus 2: Activity Log with Triggers
+
+CREATE OR REPLACE FUNCTION log_task_changes()
+RETURNS TRIGGER AS $$
+BEGIN 
+    IF(TG_OP = 'DELETE') THEN
+        INSERT INTO activity_log(task_id, action_type, old_data)
+        VALUES (OLD.id, 'DELETE', to_jsonb(OLD))
+        RETURN OLD;
+
+    ELSIF(TG_OP = 'UPDATE') THEN
+        INSERT INTO activity_log(task_id, action_type, old_data, new_data)
+        VALUES (NEW.id, 'UPDATE', to_jsonb(OLD), to_jsonb(NEW))
+        RETURN NEW;
+
+    ELSIF(TG_OP = 'INSERT') THEN
+        INSERT INTO activity_log(task_id, action_type, new_data)
+        VALUES (NEW.id, 'INSERT', to_jsonb(NEW))
+        RETURN NEW;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_log_task_changes
+AFTER INSERT OR UPDATE OR DELETE ON tasks
+FOR EACH ROW EXECUTE FUNCTION log_task_changes(); 
+
+SELECT * FROM activity_log;
+    
+
+-- Bonus 3: Database Functions
+
+
+CREATE FUNCTION calculate_project_completion(p_id INT)
+RETURNS NUMERIC AS $$
+DECLARE
+    completion_percentage NUMERIC;
+BEGIN
+    SELECT 
+        (COUNT(*) FILTER (WHERE status = 'done')::NUMERIC / 
+         NULLIF(COUNT(*), 0)::NUMERIC) * 100
+    INTO completion_percentage
+    FROM tasks
+    WHERE project_id = p_id;
+
+    RETURN COALESCE(completion_percentage, 0); 
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Bonus 4: Cursor-Based Pagination
+
+
+CREATE INDEX idx_projects_cursor ON projects (created_at DESC, id DESC);
+
+ 

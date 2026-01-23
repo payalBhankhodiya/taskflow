@@ -34,6 +34,8 @@ function createTable() {
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
         );
+
+        CREATE INDEX tasks_search_idx ON tasks USING GIN (search_vector);
         
         CREATE TABLE labels(
         id SERIAL PRIMARY KEY,
@@ -47,6 +49,16 @@ function createTable() {
         task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
         label_id INTEGER REFERENCES labels(id) ON DELETE CASCADE,
         PRIMARY KEY (task_id, label_id)
+        );
+
+        CREATE TABLE activity_log (
+        log_id SERIAL PRIMARY KEY,
+        task_id INTEGER,
+        action_type VARCHAR(10),
+        changed_by TEXT DEFAULT CURRENT_USER,
+        changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        old_data JSONB, 
+        new_data JSONB  
         );
     `;
 
@@ -69,7 +81,19 @@ async function alterTable() {
 
     ALTER TABLE tasks 
     ADD COLUMN metadata JSONB;
-    `;
+
+    ALTER TABLE tasks
+    ADD COLUMN search_vector tsvector;
+
+
+    UPDATE tasks
+    SET search_vector =
+    to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, ''));
+
+
+    CREATE INDEX tasks_search_idx
+    ON tasks USING GIN (search_vector);
+  `;
 
   try {
     await pool.query(alterQuery);
