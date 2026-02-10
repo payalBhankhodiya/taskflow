@@ -60,6 +60,26 @@ function createTable() {
         old_data JSONB, 
         new_data JSONB  
         );
+
+        CREATE TABLE user_activity_log (
+        log_id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        action_type VARCHAR(10),
+        changed_by TEXT DEFAULT CURRENT_USER,
+        changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        old_data JSONB, 
+        new_data JSONB  
+        );
+
+        CREATE TABLE project_activity_log (
+        log_id SERIAL PRIMARY KEY,
+        project_id INTEGER,
+        action_type VARCHAR(10),
+        changed_by TEXT DEFAULT CURRENT_USER,
+        changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        old_data JSONB, 
+        new_data JSONB  
+        );
     `;
 
   pool.query(tableQuery, (error, results) => {

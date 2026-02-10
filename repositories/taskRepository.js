@@ -17,7 +17,7 @@ async function createTask(req, res) {
       [title, description, project_id, assignee_id, status, priority, due_date],
     );
     res.json(addQuery.rows[0]);
-  } catch {
+  } catch (err) {
     console.error(err.message);
   }
 }
@@ -28,7 +28,7 @@ async function getTaskById(req, res) {
     const taskByIdQuery = await pool.query(
       `SELECT t.id, t.title, p.name, u.username FROM tasks t
       JOIN projects p ON t.project_id = p.id
-      JOIN users u ON t.assignee_id = u.id
+      LEFT JOIN users u ON t.assignee_id = u.id
        WHERE t.id = $1`,
       [id],
     );

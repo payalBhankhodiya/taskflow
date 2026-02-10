@@ -79,31 +79,85 @@ SELECT * FROM overdue_tasks;
 
 -- Bonus 2: Activity Log with Triggers
 
-CREATE OR REPLACE FUNCTION log_task_changes()
+CREATE FUNCTION log_task_changes()
 RETURNS TRIGGER AS $$
 BEGIN 
     IF(TG_OP = 'DELETE') THEN
         INSERT INTO activity_log(task_id, action_type, old_data)
-        VALUES (OLD.id, 'DELETE', to_jsonb(OLD))
+        VALUES (OLD.id, 'DELETE', to_jsonb(OLD));
         RETURN OLD;
 
     ELSIF(TG_OP = 'UPDATE') THEN
         INSERT INTO activity_log(task_id, action_type, old_data, new_data)
-        VALUES (NEW.id, 'UPDATE', to_jsonb(OLD), to_jsonb(NEW))
+        VALUES (NEW.id, 'UPDATE', to_jsonb(OLD), to_jsonb(NEW));
         RETURN NEW;
 
     ELSIF(TG_OP = 'INSERT') THEN
         INSERT INTO activity_log(task_id, action_type, new_data)
-        VALUES (NEW.id, 'INSERT', to_jsonb(NEW))
+        VALUES (NEW.id, 'INSERT', to_jsonb(NEW));
         RETURN NEW;
     END IF;
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
+
+CREATE FUNCTION log_user_changes()
+RETURNS TRIGGER AS $$
+BEGIN 
+    IF(TG_OP = 'DELETE') THEN
+        INSERT INTO user_activity_log(user_id, action_type, old_data)
+        VALUES (OLD.id, 'DELETE', to_jsonb(OLD));
+        RETURN OLD;
+
+    ELSIF(TG_OP = 'UPDATE') THEN
+        INSERT INTO user_activity_log(user_id, action_type, old_data, new_data)
+        VALUES (NEW.id, 'UPDATE', to_jsonb(OLD), to_jsonb(NEW));
+        RETURN NEW;
+
+    ELSIF(TG_OP = 'INSERT') THEN
+        INSERT INTO user_activity_log(user_id, action_type, new_data)
+        VALUES (NEW.id, 'INSERT', to_jsonb(NEW));
+        RETURN NEW;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION log_project_changes()
+RETURNS TRIGGER AS $$
+BEGIN 
+    IF(TG_OP = 'DELETE') THEN
+        INSERT INTO project_activity_log(project_id, action_type, old_data)
+        VALUES (OLD.id, 'DELETE', to_jsonb(OLD));
+        RETURN OLD;
+
+    ELSIF(TG_OP = 'UPDATE') THEN
+        INSERT INTO project_activity_log(project_id, action_type, old_data, new_data)
+        VALUES (NEW.id, 'UPDATE', to_jsonb(OLD), to_jsonb(NEW));
+        RETURN NEW;
+
+    ELSIF(TG_OP = 'INSERT') THEN
+        INSERT INTO project_activity_log(project_id, action_type, new_data)
+        VALUES (NEW.id, 'INSERT', to_jsonb(NEW));
+        RETURN NEW;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+
 CREATE TRIGGER trigger_log_task_changes
 AFTER INSERT OR UPDATE OR DELETE ON tasks
 FOR EACH ROW EXECUTE FUNCTION log_task_changes(); 
+
+CREATE TRIGGER trigger_log_user_changes
+AFTER INSERT OR UPDATE OR DELETE ON users
+FOR EACH ROW EXECUTE FUNCTION log_user_changes(); 
+
+CREATE TRIGGER trigger_log_project_changes
+AFTER INSERT OR UPDATE OR DELETE ON projects
+FOR EACH ROW EXECUTE FUNCTION log_project_changes(); 
 
 SELECT * FROM activity_log;
     

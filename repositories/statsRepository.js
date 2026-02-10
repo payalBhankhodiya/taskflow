@@ -146,13 +146,11 @@ async function searchTasks(req, res) {
 
 async function getUnassignedUsers(req, res) {
   const query = `
-    select u.username
-    from users u
-    where not exists (
-    select 1
-    from tasks t
-    where t.assignee_id = u.id
-    );
+    SELECT u.username FROM users u
+    WHERE NOT EXISTS (
+      SELECT 1 FROM tasks t
+      WHERE t.assignee_id = u.id
+      );
   `;
 
   try {
@@ -193,7 +191,8 @@ async function getHighPerformers(req, res) {
   const query = `
     SELECT
     u.username,
-    COUNT(t.id) AS tasks_completed FROM users u
+    COUNT(t.id) FILTER (WHERE t.status = 'done') AS tasks_completed
+    FROM users u
     JOIN tasks t ON u.id = t.assignee_id
     GROUP BY u.id, u.username
     HAVING

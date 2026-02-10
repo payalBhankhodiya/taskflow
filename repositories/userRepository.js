@@ -5,12 +5,13 @@ async function createUser(req, res) {
     const { email, username, password_hash, full_name, avatar_url } = req.body;
     const addQuery = await pool.query(
       `INSERT INTO users (email, username, password_hash, full_name, avatar_url) VALUES($1,$2,$3,$4,$5) RETURNING *;`,
-      [email, username, password_hash, full_name, avatar_url]
+      [email, username, password_hash, full_name, avatar_url],
     );
     //console.log(addQuery);
     res.json(addQuery.rows[0]);
   } catch (err) {
-    console.error("create user error:", err.message);
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 
@@ -19,27 +20,40 @@ async function getUserById(req, res) {
     const { id } = req.params;
     const userByIdQuery = await pool.query(
       "SELECT * FROM users WHERE id = $1",
-      [id]
+      [id],
     );
 
     res.json(userByIdQuery.rows[0]);
   } catch (err) {
-    console.error("user get by id error : ", err.message);
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 
 async function getUserByEmail(req, res) {
   try {
     const { email } = req.params;
-    const userByEmailQuery = await pool.query(
+
+    const result = await pool.query(
       "SELECT * FROM users WHERE email = $1",
       [email]
     );
-    res.json(userByEmailQuery.rows[0]);
-  } catch (error) {
-    console.error(error);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+   return res.status(200).json(result.rows[0]);
+
+  } catch (err) {
+    console.error("Error executing query", err);
+    return res.status(500).json({
+      error: "Internal server error"
+    });
   }
 }
+
 
 async function updateUser(req, res) {
   try {
@@ -54,13 +68,13 @@ async function updateUser(req, res) {
            full_name = $4,
            avatar_url = $5
        WHERE id = $6`,
-      [email, username, password_hash, full_name, avatar_url, id]
+      [email, username, password_hash, full_name, avatar_url, id],
     );
 
     res.json({ message: "User updated successfully" });
   } catch (err) {
-    console.error("User update error :", err.message);
-    res.status(500).json(err.message);
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 
@@ -69,11 +83,12 @@ async function deleteUser(req, res) {
     const { id } = req.params;
     const deleteUserQuery = await pool.query(
       "DELETE FROM users WHERE id = $1",
-      [id]
+      [id],
     );
     res.json("User has been deleted");
   } catch (err) {
-    console.error("not delete user error : ", err.message);
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 
@@ -98,7 +113,7 @@ async function getAllUsers(req, res) {
       page,
       limit,
       totalUsers,
-      totalPages
+      totalPages,
     };
 
     res.json({
@@ -106,8 +121,8 @@ async function getAllUsers(req, res) {
       pagination,
     });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server Error");
+    console.error("Error executing query", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 
